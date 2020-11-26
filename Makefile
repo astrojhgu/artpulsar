@@ -1,4 +1,5 @@
-all: tx_pulsar hackrf_daq
+TARGETS=tx_pulsar hackrf_daq
+all: $(TARGETS)
 
 LIBS=-luhd -lboost_program_options -pthread -L lib -lpulsar_signal -ldl
 
@@ -11,3 +12,6 @@ tx_pulsar: tx_pulsar.cpp lib/libpulsar_signal.a
 
 hackrf_daq: hackrf_daq.cpp
 	g++ $< -o $@ -O3 -lhackrf $(LIBS)
+
+clean:
+	rm -rf lib $(TARGETS)
