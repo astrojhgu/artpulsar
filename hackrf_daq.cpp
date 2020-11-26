@@ -15,7 +15,7 @@ using namespace std;
 
 constexpr double SAMP_RATE=10e6;
 double FREQ_CENTRE_MHZ=150.0;
-
+size_t cnt=0;
 ofstream ofs;
 
 int config_hackrf( hackrf_device * & dev, const int16_t & gain)
@@ -75,6 +75,10 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
 
 int rx_callback(hackrf_transfer* transfer) {
     ofs.write((char*)transfer->buffer, transfer->valid_length);
+    cnt+=1;
+    if (cnt%(1000)==0){
+        std::cerr<<"cb called "<<cnt<<" times"<<std::endl;
+    }
 	return(0);
 }
 
@@ -138,7 +142,7 @@ int main(int argc, char* argv[]){
 
     // print the help message
     if (vm.count("help")) {
-        std::cout << boost::format("transmitting pulsar signal %s") % desc << std::endl;
+        std::cout << boost::format("acquiring pulsar signal %s") % desc << std::endl;
         return ~0;
     }
 
@@ -159,7 +163,5 @@ int main(int argc, char* argv[]){
     else
     {
         cout << "HACKRF device not FOUND!\n";
-    }
-
-    
+    }    
 }
