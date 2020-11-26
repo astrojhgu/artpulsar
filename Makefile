@@ -10,4 +10,4 @@ tx_pulsar: tx_pulsar.cpp lib/libpulsar_signal.a
 	g++ $< -o $@ -O3 $(LIBS)
 
 hackrf_daq: hackrf_daq.cpp
-	g++ $< -o $@ -O3 -lhackrf
+	g++ $< -o $@ -O3 -lhackrf $(LIBS)

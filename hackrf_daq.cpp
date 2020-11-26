@@ -1,3 +1,5 @@
+#include <boost/program_options.hpp>
+#include <boost/format.hpp>
 #include <libhackrf/hackrf.h>
 #include <iostream>
 #include <cstdlib>
@@ -6,11 +8,15 @@
 #include <thread>
 #include <vector>
 #include <fstream>
+
+
+namespace po = boost::program_options;
 using namespace std;
 
 constexpr double SAMP_RATE=10e6;
-constexpr double FREQ_CENTRE=150e6;
+double FREQ_CENTRE_MHZ=150.0;
 
+ofstream ofs;
 
 int config_hackrf( hackrf_device * & dev, const int16_t & gain)
 {
@@ -58,7 +64,7 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
 	}
 
     // Center frequency
-    result = hackrf_set_freq(dev, FREQ_CENTRE);
+    result = hackrf_set_freq(dev, FREQ_CENTRE_MHZ*1e6);
     if( result != HACKRF_SUCCESS ) {
         printf("config_hackrf hackrf_set_freq() failed: %s (%d)\n", hackrf_error_name((hackrf_error)result), result);
         return(result);
@@ -68,7 +74,6 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
 }
 
 int rx_callback(hackrf_transfer* transfer) {
-    static ofstream ofs("a.bin");
     ofs.write((char*)transfer->buffer, transfer->valid_length);
 	return(0);
 }
@@ -118,10 +123,28 @@ int rx(hackrf_device *dev)
 
 
 
-int main(){
+int main(int argc, char* argv[]){
+    std::string ofname;
+    po::options_description desc("Allowed options");
+    desc.add_options()
+        ("help", "help message")
+        ("freq", po::value<double>(&FREQ_CENTRE_MHZ)->default_value(150), "freq in MHz")
+        ("out", po::value<std::string>(&ofname)->default_value("/dev/stdout"), "outfile name")
+        ;
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
 
-    
 
+    // print the help message
+    if (vm.count("help")) {
+        std::cout << boost::format("transmitting pulsar signal %s") % desc << std::endl;
+        return ~0;
+    }
+
+    ofs.open(ofname.c_str());
+
+    std::cerr<<"freq= "<<FREQ_CENTRE_MHZ<<std::endl;
 
 
     hackrf_device *hackrf_dev = nullptr;
@@ -131,11 +154,12 @@ int main(){
     if (result ==0)
     {
         cout << "OK!\n";
+        rx(hackrf_dev);
     }
     else
     {
         cout << "HACKRF device not FOUND!\n";
     }
 
-    rx(hackrf_dev);
+    
 }
