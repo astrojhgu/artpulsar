@@ -269,7 +269,7 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     double df=rate/nch;
     size_t ch_max=fmax/df;
     //size_t ch_min=fmin/df;
-    size_t ch_min=ch_max+1-nch;
+    size_t ch_min=ch_max-nch;
     
 
     send_signal(tx_stream, period_ms, dm, nperiod_per_shoot, fmax, ch_max, ch_min, sigma);
