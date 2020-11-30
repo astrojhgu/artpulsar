@@ -19,15 +19,10 @@
 #include <thread>
 
 #include "bufq.hpp"
+#include "pulsar.hpp"
 
 namespace po = boost::program_options;
 using std::complex;
-
-extern "C"{
-    void init_pulsar(size_t nch, double fs, double dm,double period_s, double sigma, size_t ch_min);
-    void fill_buf(std::complex<int16_t>* ptr, size_t len);
-    size_t signal_length();
-}
 
 static bool stop_signal_called = false;
 void sig_int_handler(int)
@@ -42,34 +37,42 @@ void send_signal(
     double dm, 
     size_t npp, 
     double fmax_Hz, 
-    size_t ch_max, size_t ch_min, double sigma=0.05)
+    double fmin_Hz
+    )
 {
-    init_pulsar(ch_max, fmax_Hz*2, dm, period_ms/1000.0, sigma, ch_min);
-    size_t nperiods=npp;
-    std::cerr<<"npp="<<nperiods<<std::endl;
-    std::cerr<<"dm="<<dm<<std::endl;
-    std::cerr<<"period="<<period_ms<<" ms"<<std::endl;
-    std::cerr<<"chmax="<<ch_max<<std::endl;
-    std::cerr<<"chmin="<<ch_min<<std::endl;
-    std::cerr<<"fmax="<<fmax_Hz<<std::endl;
-    std::cerr<<"fmin="<<fmax_Hz/ch_max*ch_min<<std::endl;
-    size_t sl=signal_length();
+    std::function<void(std::vector<std::complex<double>>&)> generator;
+    size_t signal_length=0;
+
+    std::tie(generator, signal_length)=get_pulsar(fmin_Hz/1e6, fmax_Hz/1e6, period_ms, dm, npp);
+    std::cout<<signal_length<<std::endl;
+    
     uhd::tx_metadata_t md;
     md.start_of_burst = false;
     md.end_of_burst   = false;
 
     BufQ<std::vector<std::complex<int16_t>>> queue{
-        std::make_shared<std::vector<std::complex<int16_t>>>(nperiods*sl),
-        std::make_shared<std::vector<std::complex<int16_t>>>(nperiods*sl),
-        std::make_shared<std::vector<std::complex<int16_t>>>(nperiods*sl),
-        std::make_shared<std::vector<std::complex<int16_t>>>(nperiods*sl)};
+        std::make_shared<std::vector<std::complex<int16_t>>>(signal_length),
+        std::make_shared<std::vector<std::complex<int16_t>>>(signal_length),
+        std::make_shared<std::vector<std::complex<int16_t>>>(signal_length),
+        std::make_shared<std::vector<std::complex<int16_t>>>(signal_length)};
+
+    std::vector<std::complex<double>> buffer(signal_length);
+    double max_value=0;
 
     std::thread th([&](){
         while(!stop_signal_called){
             queue.write([&](auto x){
                 //sleep for a while to emulate
                 //expensive computings.
-                fill_buf(x.get()->data(), nperiods*sl);
+                
+                auto data=x.get();
+                generator(buffer);
+                for(size_t i=0;i<buffer.size();++i){
+                    max_value=std::max(std::abs(std::real(buffer[i])), max_value);
+                    max_value=std::max(std::abs(std::imag(buffer[i])), max_value);
+                    auto x=buffer[i]/max_value*(double)std::numeric_limits<int16_t>::max()/2.0;
+                    (*data)[i]=complex<int16_t>(std::real(x), std::imag(x));
+                }
             });
         }
     });
@@ -272,7 +275,7 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     size_t ch_min=ch_max-nch;
     
 
-    send_signal(tx_stream, period_ms, dm, nperiod_per_shoot, fmax, ch_max, ch_min, sigma);
+    send_signal(tx_stream, period_ms, dm, nperiod_per_shoot, fmax, fmin);
     
     // finished
     std::cout << std::endl << "Done!" << std::endl << std::endl;

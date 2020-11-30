@@ -129,10 +129,12 @@ int rx(hackrf_device *dev)
 
 int main(int argc, char* argv[]){
     std::string ofname;
+    int16_t gain=0;
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "help message")
         ("freq", po::value<double>(&FREQ_CENTRE_MHZ)->default_value(150), "freq in MHz")
+        ("gain", po::value<int16_t>(&gain)->default_value(0), "gain")
         ("out", po::value<std::string>(&ofname)->default_value("/dev/stdout"), "outfile name")
         ;
     po::variables_map vm;
@@ -153,7 +155,7 @@ int main(int argc, char* argv[]){
 
     hackrf_device *hackrf_dev = nullptr;
     int result = 0;
-    result=config_hackrf(hackrf_dev, 0);
+    result=config_hackrf(hackrf_dev, gain);
     
     if (result ==0)
     {

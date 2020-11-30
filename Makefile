@@ -1,14 +1,14 @@
 TARGETS=tx_pulsar hackrf_daq
 all: $(TARGETS)
 
-LIBS=-luhd -lboost_program_options -pthread -L lib -lpulsar_signal -ldl
+LIBS=-luhd -lboost_program_options -pthread -ldl -lfftw3
+
+pulsar.o: pulsar.cpp pulsar.hpp
+	g++ -c -o $@ $< -O3
 
 
-lib/libpulsar_signal.a: ../pulsar_signal/src/lib.rs
-	cargo build --manifest-path ../pulsar_signal/Cargo.toml --release --out-dir ./lib -Z unstable-options
-
-tx_pulsar: tx_pulsar.cpp lib/libpulsar_signal.a
-	g++ $< -o $@ -O3 $(LIBS)
+tx_pulsar: tx_pulsar.cpp pulsar.o
+	g++ $< -o $@ -O3 pulsar.o $(LIBS)
 
 hackrf_daq: hackrf_daq.cpp
 	g++ $< -o $@ -O3 -lhackrf $(LIBS)
