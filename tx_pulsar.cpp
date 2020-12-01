@@ -33,17 +33,18 @@ void sig_int_handler(int)
 
 void send_signal(
     uhd::tx_streamer::sptr tx_stream, 
-    double period_ms, 
+    size_t period_n, 
     double dm, 
     size_t npp, 
     double fmax_Hz, 
-    double fmin_Hz
+    double fmin_Hz,
+    std::function<double(double)> profile=default_profile
     )
 {
     std::function<void(std::vector<std::complex<double>>&)> generator;
     size_t signal_length=0;
 
-    std::tie(generator, signal_length)=get_pulsar(fmin_Hz/1e6, fmax_Hz/1e6, period_ms, dm, npp);
+    std::tie(generator, signal_length)=get_pulsar(fmin_Hz/1e6, fmax_Hz/1e6, period_n, dm, npp, profile);
     std::cout<<signal_length<<std::endl;
     
     uhd::tx_metadata_t md;
@@ -108,8 +109,11 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     // variables to be set by po
     std::string args, type, ant, subdev, ref, wirefmt, channel;
     
-    double dm=0, period_ms=50.0;
-    
+    double dm=0;
+    double period_ms=50.0;
+    size_t period_n=period_n/(1/100e6);
+
+
     double rate, freq, gain, bw, lo_offset;
 
     size_t nperiod_per_shoot=10;
@@ -122,7 +126,8 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
         ("help", "help message")
         ("args", po::value<std::string>(&args)->default_value(""), "multi uhd device address args")
         ("dm", po::value<double>(&dm)->default_value(0.0), "dm value")
-        ("period", po::value<double>(&period_ms)->default_value(50.0), "period in ms")
+        ("pms", po::value<double>(&period_ms), "period in ms")
+        ("pn", po::value<size_t>(&period_n), "period in n sample points")
         ("sigma", po::value<double>(&sigma)->default_value(0.05), "sigma<0.5")
         ("npp", po::value<size_t>(&nperiod_per_shoot)->default_value(10), "nperiod per shoot")
         ("nch", po::value<size_t>(&nch)->default_value(32768), "num of ch")
@@ -172,6 +177,20 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
         std::cerr << "Please specify the sample rate with --rate" << std::endl;
         return ~0;
     }
+
+    if (vm.count("pms")){
+        double dt=1/rate;
+        period_n=period_ms/dt;
+        std::cerr<<"Period in ms: "<<period_ms<<" => period_n="<< period_n<<std::endl;
+    }else if (vm.count("pn")){
+        std::cerr<<"Period in nsamples: "<<period_n<<std::endl;
+    }else{
+        std::cerr<<"Period should be provided"<<std::endl;
+        return -1;
+    }
+
+
+
     std::cout << boost::format("Setting TX Rate: %f Msps...") % (rate / 1e6) << std::endl;
     usrp->set_tx_rate(rate);
     std::cout << boost::format("Actual TX Rate: %f Msps...") % (usrp->get_tx_rate() / 1e6)
@@ -275,7 +294,9 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     size_t ch_min=ch_max-nch;
     
 
-    send_signal(tx_stream, period_ms, dm, nperiod_per_shoot, fmax, fmin);
+    send_signal(tx_stream, period_n, dm, nperiod_per_shoot, fmax, fmin, [=](double p){
+        return exp(-p*p/(2.0*sigma*sigma));
+    });
     
     // finished
     std::cout << std::endl << "Done!" << std::endl << std::endl;
