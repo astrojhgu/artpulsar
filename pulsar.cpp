@@ -54,7 +54,13 @@ double default_profile(double p){
     return exp(-p*p/(2.0*0.05*0.05));
 }
 
-std::tuple<function<void(vector<complex<double>>&)>, size_t> get_pulsar(double fmin_MHz, double fmax_MHz, size_t period_n, double dm, size_t nperiods, const std::function<double(double)> profile){
+std::tuple<function<void(vector<complex<double>>&)>, size_t> get_pulsar(
+                                                            double fmin_MHz, 
+                                                            double fmax_MHz, 
+                                                            size_t period_n, 
+                                                            double dm, 
+                                                            size_t nperiods, 
+                                                            const std::function<double(double)> profile){
     double dt=1.0/(fmax_MHz-fmin_MHz)/1e6;
     double dt_ms=dt*1000.0;
     std::cout<<"dt="<<dt<<std::endl;

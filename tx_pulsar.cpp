@@ -38,6 +38,7 @@ void send_signal(
     size_t npp, 
     double fmax_Hz, 
     double fmin_Hz,
+    bool cohmod=false,
     std::function<double(double)> profile=default_profile
     )
 {
@@ -51,17 +52,21 @@ void send_signal(
     md.start_of_burst = false;
     md.end_of_burst   = false;
 
-    BufQ<std::vector<std::complex<int16_t>>> queue{
+    BufQ<std::vector<std::complex<int16_t>>> queue(cohmod?std::initializer_list<std::shared_ptr<std::vector<std::complex<int16_t>>>>{
+        std::make_shared<std::vector<std::complex<int16_t>>>(signal_length),
+        std::make_shared<std::vector<std::complex<int16_t>>>(signal_length)
+        }:
+    std::initializer_list<std::shared_ptr<std::vector<std::complex<int16_t>>>>{
         std::make_shared<std::vector<std::complex<int16_t>>>(signal_length),
         std::make_shared<std::vector<std::complex<int16_t>>>(signal_length),
         std::make_shared<std::vector<std::complex<int16_t>>>(signal_length),
-        std::make_shared<std::vector<std::complex<int16_t>>>(signal_length)};
+        std::make_shared<std::vector<std::complex<int16_t>>>(signal_length)});
 
     std::vector<std::complex<double>> buffer(signal_length);
     double max_value=0;
 
     std::thread th([&](){
-        while(!stop_signal_called){
+        for(int i=0;!stop_signal_called && (!cohmod || i<4);++i){
             queue.write([&](auto x){
                 //sleep for a while to emulate
                 //expensive computings.
@@ -83,10 +88,10 @@ void send_signal(
     std::shared_ptr<std::vector<std::complex<int16_t>>> ptr=queue.fetch();
     while (not md.end_of_burst and not stop_signal_called) {
         if (!queue.filled_q.empty()){
-            std::cout<<"new data comming"<<std::endl;
+            std::cout<<"O";
             ptr=queue.fetch();
         }else{
-            std::cout<<"reusing old data"<<std::endl;
+            std::cout<<".";
         }
         
         const size_t samples_sent=tx_stream->send(&ptr->front(), ptr->size(), md);
@@ -124,6 +129,7 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     // clang-format off
     desc.add_options()
         ("help", "help message")
+        ("cohmod", "only generate signal one time for coherent dedispersion")
         ("args", po::value<std::string>(&args)->default_value(""), "multi uhd device address args")
         ("dm", po::value<double>(&dm)->default_value(0.0), "dm value")
         ("pms", po::value<double>(&period_ms), "period in ms")
@@ -154,6 +160,8 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
         std::cout << boost::format("transmitting pulsar signal %s") % desc << std::endl;
         return ~0;
     }
+
+    bool cohmod=vm.count("cohmod");
 
     // create a usrp device
     std::cout << std::endl;
@@ -294,7 +302,7 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     size_t ch_min=ch_max-nch;
     
 
-    send_signal(tx_stream, period_n, dm, nperiod_per_shoot, fmax, fmin, [=](double p){
+    send_signal(tx_stream, period_n, dm, nperiod_per_shoot, fmax, fmin, cohmod,[=](double p){
         return exp(-p*p/(2.0*sigma*sigma));
     });
     
