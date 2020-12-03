@@ -186,6 +186,18 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
         return ~0;
     }
 
+    
+
+
+    std::cout << boost::format("Setting TX Rate: %f Msps...") % (rate / 1e6) << std::endl;
+    usrp->set_tx_rate(rate);
+    std::cout << boost::format("Actual TX Rate: %f Msps...") % (usrp->get_tx_rate() / 1e6)
+              << std::endl
+              << std::endl;
+
+    
+    rate = usrp->get_tx_rate();
+    
     if (vm.count("pms")){
         double dt=1/rate;
         period_n=period_ms/dt;
@@ -197,13 +209,6 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
         return -1;
     }
 
-
-
-    std::cout << boost::format("Setting TX Rate: %f Msps...") % (rate / 1e6) << std::endl;
-    usrp->set_tx_rate(rate);
-    std::cout << boost::format("Actual TX Rate: %f Msps...") % (usrp->get_tx_rate() / 1e6)
-              << std::endl
-              << std::endl;
 
     // set the center frequency
     if (not vm.count("freq")) {

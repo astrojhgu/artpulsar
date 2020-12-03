@@ -13,10 +13,12 @@
 namespace po = boost::program_options;
 using namespace std;
 
-constexpr double SAMP_RATE=10e6;
-double FREQ_CENTRE_MHZ=150.0;
+double SAMP_RATE_MHz=2.0;
+double FREQ_CENTRE_MHz=150.0;
 size_t cnt=0;
 ofstream ofs;
+size_t nsamples=size_t(50e6);
+
 
 int config_hackrf( hackrf_device * & dev, const int16_t & gain)
 {
@@ -39,7 +41,7 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
         return(result);
 	}
 
-    double sampling_rate = SAMP_RATE;
+    double sampling_rate = SAMP_RATE_MHz*1e6;
     // Sampling frequency
     result = hackrf_set_sample_rate_manual(dev, sampling_rate, 1);
     
@@ -49,7 +51,7 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
 	}
 
     // Need to make more study in the future. temperily set it 0.
-    result = hackrf_set_baseband_filter_bandwidth(dev, 5000000);
+    //result = hackrf_set_baseband_filter_bandwidth(dev, 5000000);
 	if( result != HACKRF_SUCCESS ) {
 		printf("config_hackrf hackrf_baseband_filter_bandwidth_set() failed: %s (%d)\n", hackrf_error_name((hackrf_error)result), result);
 		return(result);
@@ -64,7 +66,7 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
 	}
 
     // Center frequency
-    result = hackrf_set_freq(dev, FREQ_CENTRE_MHZ*1e6);
+    result = hackrf_set_freq(dev, FREQ_CENTRE_MHz*1e6);
     if( result != HACKRF_SUCCESS ) {
         printf("config_hackrf hackrf_set_freq() failed: %s (%d)\n", hackrf_error_name((hackrf_error)result), result);
         return(result);
@@ -76,6 +78,9 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
 int rx_callback(hackrf_transfer* transfer) {
     ofs.write((char*)transfer->buffer, transfer->valid_length);
     cnt+=1;
+    if (cnt*transfer->valid_length>nsamples){
+        exit(0);
+    }
     if (cnt%(1000)==0){
         std::cerr<<"cb called "<<cnt<<" times"<<std::endl;
     }
@@ -133,7 +138,8 @@ int main(int argc, char* argv[]){
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "help message")
-        ("freq", po::value<double>(&FREQ_CENTRE_MHZ)->default_value(150), "freq in MHz")
+        ("freq", po::value<double>(&FREQ_CENTRE_MHz)->default_value(150), "freq in MHz")
+        ("bw", po::value<double>(&SAMP_RATE_MHz)->default_value(2), "freq in MHz")
         ("gain", po::value<int16_t>(&gain)->default_value(0), "gain")
         ("out", po::value<std::string>(&ofname)->default_value("/dev/stdout"), "outfile name")
         ;
@@ -150,7 +156,8 @@ int main(int argc, char* argv[]){
 
     ofs.open(ofname.c_str());
 
-    std::cerr<<"freq= "<<FREQ_CENTRE_MHZ<<std::endl;
+    std::cerr<<"freq= "<<FREQ_CENTRE_MHz<<std::endl;
+    std::cerr<<"bw= "<<SAMP_RATE_MHz<<std::endl;
 
 
     hackrf_device *hackrf_dev = nullptr;
