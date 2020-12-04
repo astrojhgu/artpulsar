@@ -13,11 +13,11 @@
 namespace po = boost::program_options;
 using namespace std;
 
-double SAMP_RATE_MHz=2.0;
+double SAMP_RATE_MHz=10.0;
 double FREQ_CENTRE_MHz=150.0;
 size_t cnt=0;
 ofstream ofs;
-size_t nsamples=size_t(50e6);
+size_t nsamples=size_t(SAMP_RATE_MHz*1e6*60);
 
 
 int config_hackrf( hackrf_device * & dev, const int16_t & gain)
@@ -30,14 +30,16 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
     int result = hackrf_init();
     
 	if( result != HACKRF_SUCCESS ) {
-		printf("config_hackrf hackrf_init() failed: %s (%d)\n", hackrf_error_name((hackrf_error)result), result);
+		//printf("config_hackrf hackrf_init() failed: %s (%d)\n", 
+        //hackrf_error_name((hackrf_error)result), result);
+        std::cerr<<"config_hackrf hackrf_init() failed:"<<hackrf_error_name((hackrf_error)result)<<" "<<result<<std::endl;
         return(result);
 	}
 
 	result = hackrf_open(&dev);
     
 	if( result != HACKRF_SUCCESS ) {
-		printf("config_hackrf hackrf_open() failed: %s (%d)\n", hackrf_error_name((hackrf_error)result), result);
+		std::cerr<<"config_hackrf hackrf_init() failed:"<<hackrf_error_name((hackrf_error)result)<<" "<<result<<std::endl;
         return(result);
 	}
 
@@ -46,14 +48,14 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
     result = hackrf_set_sample_rate_manual(dev, sampling_rate, 1);
     
 	if( result != HACKRF_SUCCESS ) {
-		printf("config_hackrf hackrf_sample_rate_set() failed: %s (%d)\n", hackrf_error_name((hackrf_error)result), result);
+		std::cerr<<"config_hackrf hackrf_init() failed:"<<hackrf_error_name((hackrf_error)result)<<" "<<result<<std::endl;
         return(result);
 	}
 
     // Need to make more study in the future. temperily set it 0.
     //result = hackrf_set_baseband_filter_bandwidth(dev, 5000000);
 	if( result != HACKRF_SUCCESS ) {
-		printf("config_hackrf hackrf_baseband_filter_bandwidth_set() failed: %s (%d)\n", hackrf_error_name((hackrf_error)result), result);
+		std::cerr<<"config_hackrf hackrf_init() failed:"<<hackrf_error_name((hackrf_error)result)<<" "<<result<<std::endl;
 		return(result);
 	}
 
@@ -61,14 +63,14 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
 	result |= hackrf_set_lna_gain(dev, lna_gain);
 
     if( result != HACKRF_SUCCESS ) {
-		printf("config_hackrf hackrf_set_vga_gain hackrf_set_lna_gain failed: %s (%d)\n", hackrf_error_name((hackrf_error)result), result);
+		std::cerr<<"config_hackrf hackrf_init() failed:"<<hackrf_error_name((hackrf_error)result)<<" "<<result<<std::endl;
 		return(result);
 	}
 
     // Center frequency
     result = hackrf_set_freq(dev, FREQ_CENTRE_MHz*1e6);
     if( result != HACKRF_SUCCESS ) {
-        printf("config_hackrf hackrf_set_freq() failed: %s (%d)\n", hackrf_error_name((hackrf_error)result), result);
+        std::cerr<<"config_hackrf hackrf_init() failed:"<<hackrf_error_name((hackrf_error)result)<<" "<<result<<std::endl;
         return(result);
     }
     
@@ -78,12 +80,10 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
 int rx_callback(hackrf_transfer* transfer) {
     ofs.write((char*)transfer->buffer, transfer->valid_length);
     cnt+=1;
-    if (cnt*transfer->valid_length>nsamples){
+    if (cnt*transfer->valid_length>2*nsamples){
         exit(0);
     }
-    if (cnt%(1000)==0){
-        std::cerr<<"cb called "<<cnt<<" times"<<std::endl;
-    }
+    
 	return(0);
 }
 
@@ -95,15 +95,15 @@ int rx(hackrf_device *dev)
     result = hackrf_start_rx(dev, rx_callback, NULL);
     // printf("2\n");
 	// while( (hackrf_is_streaming(device) == HACKRF_TRUE) &&(do_exit == false) )
-    cout<<"result="<<result<<std::endl;
-    cout<<hackrf_is_streaming(dev)<<std::endl;
+    cerr<<"result="<<result<<std::endl;
+    cerr<<hackrf_is_streaming(dev)<<std::endl;
 	while( (hackrf_is_streaming(dev) == HACKRF_TRUE) )
 	{
         std::this_thread::sleep_for(1s);
         //sleep(1);
         cerr<<".";
     }
-    cout<<"stopped"<<std::endl;
+    cerr<<"stopped"<<std::endl;
 
 	result = hackrf_stop_rx(dev);
 
@@ -150,7 +150,7 @@ int main(int argc, char* argv[]){
 
     // print the help message
     if (vm.count("help")) {
-        std::cout << boost::format("acquiring pulsar signal %s") % desc << std::endl;
+        std::cerr << boost::format("acquiring pulsar signal %s") % desc << std::endl;
         return ~0;
     }
 
@@ -166,11 +166,11 @@ int main(int argc, char* argv[]){
     
     if (result ==0)
     {
-        cout << "OK!\n";
+        cerr << "OK!\n";
         rx(hackrf_dev);
     }
     else
     {
-        cout << "HACKRF device not FOUND!\n";
+        cerr << "HACKRF device not FOUND!\n";
     }    
 }
