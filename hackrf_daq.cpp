@@ -136,16 +136,20 @@ int main(int argc, char* argv[]){
     std::string ofname;
     int16_t gain=0;
     po::options_description desc("Allowed options");
+    double secs=10;
     desc.add_options()
         ("help", "help message")
         ("freq", po::value<double>(&FREQ_CENTRE_MHz)->default_value(150), "freq in MHz")
         ("bw", po::value<double>(&SAMP_RATE_MHz)->default_value(2), "freq in MHz")
+        ("secs", po::value<double>(&secs)->default_value(10), "daq secs of data")
         ("gain", po::value<int16_t>(&gain)->default_value(0), "gain")
         ("out", po::value<std::string>(&ofname)->default_value("/dev/stdout"), "outfile name")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
+
+    nsamples=secs*SAMP_RATE_MHz*1e6;
 
 
     // print the help message

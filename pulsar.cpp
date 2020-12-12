@@ -8,6 +8,8 @@
 #include <iostream>
 using namespace std;
 
+constexpr double PI=3.14159265358979323846;
+
 double calc_delay_s(double f_MHz, double dm){
     return 1.0 / 2.410331e-4 * dm / (f_MHz*f_MHz);
 }
@@ -50,6 +52,11 @@ const std::function<double(double)>& profile, RNGT& gen){
     }
 }
 
+complex<double> chirp(double dm, double f0_MHz, double f1_MHz){
+    double phase=dm/2.41e-10*f1_MHz*f1_MHz/(f0_MHz*f0_MHz*(f0_MHz+f1_MHz));
+    return exp(2.0*PI*complex<double>(0.0, 1.0)*phase);
+}
+
 double default_profile(double p){
     return exp(-p*p/(2.0*0.05*0.05));
 }
@@ -78,9 +85,10 @@ std::tuple<function<void(vector<complex<double>>&)>, size_t> get_pulsar(
     vector<complex<double>> phase_factor(signal_length);
     for(size_t i=0;i<signal_length;++i){
         auto freq1=fc_Hz+freq[i]*bw_Hz;
-        double delay=calc_delay_s(freq1/1e6, dm);
-        double dphi=delay*freq1*2.0*3.14159265358979323846;
-        phase_factor[i]=exp(complex<double>(0.0, 1.0)*dphi);
+        //double delay=calc_delay_s(freq1/1e6, dm);
+        //double dphi=delay*freq1*2.0*3.14159265358979323846;
+        //phase_factor[i]=exp(complex<double>(0.0, 1.0)*dphi);
+        phase_factor[i]=chirp(dm, fc_Hz/1e6, freq[i]*bw_Hz/1e6);
     }
     
     
