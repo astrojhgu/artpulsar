@@ -37,7 +37,7 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
 	}
 
 	result = hackrf_open(&dev);
-    
+    //result = hackrf_reset(dev);
 	if( result != HACKRF_SUCCESS ) {
 		std::cerr<<"config_hackrf hackrf_init() failed:"<<hackrf_error_name((hackrf_error)result)<<" "<<result<<std::endl;
         return(result);
@@ -46,7 +46,7 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
     double sampling_rate = SAMP_RATE_MHz*1e6;
     // Sampling frequency
     result = hackrf_set_sample_rate_manual(dev, sampling_rate, 1);
-    
+    //result |= hackrf_set_hw_sync_mode(dev, 1);
 	if( result != HACKRF_SUCCESS ) {
 		std::cerr<<"config_hackrf hackrf_init() failed:"<<hackrf_error_name((hackrf_error)result)<<" "<<result<<std::endl;
         return(result);
@@ -61,7 +61,6 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
 
     result = hackrf_set_vga_gain(dev, vga_gain);
 	result |= hackrf_set_lna_gain(dev, lna_gain);
-
     if( result != HACKRF_SUCCESS ) {
 		std::cerr<<"config_hackrf hackrf_init() failed:"<<hackrf_error_name((hackrf_error)result)<<" "<<result<<std::endl;
 		return(result);
@@ -91,6 +90,7 @@ int rx_callback(hackrf_transfer* transfer) {
 int rx(hackrf_device *dev)
 {
     int result = 0;
+    //hackrf_reset(dev);
 
     result = hackrf_start_rx(dev, rx_callback, NULL);
     // printf("2\n");
@@ -122,8 +122,8 @@ int rx(hackrf_device *dev)
 	} else {
 		fprintf(stderr, "hackrf_close() done\n");
 	}
-
-	// hackrf_exit();
+    hackrf_close(dev);
+	hackrf_exit();
 	fprintf(stderr, "hackrf_exit() done\n");
 
 

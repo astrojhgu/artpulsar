@@ -1,7 +1,8 @@
 #include <vector>
 #include <complex>
 #include "pulsar.hpp"
-#include <fftw3.h>
+//#include <fftw3.h>
+#include <cufftw.h>
 #include <cassert>
 #include <functional>
 #include <random>
@@ -11,7 +12,7 @@ using namespace std;
 constexpr double PI=3.14159265358979323846;
 
 double calc_delay_s(double f_MHz, double dm){
-    return 1.0 / 2.410331e-4 * dm / (f_MHz*f_MHz);
+    return 1.0 / 2.41e-4 * dm / (f_MHz*f_MHz);
 }
 
 std::vector<double> fftfreq(int n){
@@ -32,6 +33,7 @@ const vector<complex<double>>& phase_factor, fftw_plan pf, fftw_plan pb){
     size_t n=signal.size();
     assert(phase_factor.size()==n);
     fftw_execute_dft(pf, (fftw_complex*)signal.data(), (fftw_complex*)signal.data());
+    #pragma omp parallel for
     for (size_t i=0;i<n;++i){
         signal[i]*=phase_factor[i]/(double)n;
     }
@@ -83,6 +85,8 @@ std::tuple<function<void(vector<complex<double>>&)>, size_t> get_pulsar(
 
     auto freq=fftfreq(signal_length);
     vector<complex<double>> phase_factor(signal_length);
+
+    #pragma omp parallel for
     for(size_t i=0;i<signal_length;++i){
         auto freq1=fc_Hz+freq[i]*bw_Hz;
         //double delay=calc_delay_s(freq1/1e6, dm);
