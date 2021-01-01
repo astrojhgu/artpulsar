@@ -1,7 +1,7 @@
-TARGETS=tx_pulsar hackrf_daq
+TARGETS=tx_pulsar hackrf_daq single_tone
 all: $(TARGETS)
 
-LIBS=-luhd -lboost_program_options -pthread -ldl -lcufftw
+LIBS=-luhd -lboost_program_options -lboost_system -pthread -ldl -lcufftw
 
 pulsar.o: pulsar.cpp pulsar.hpp
 	g++ -c -o $@ $< -O3 -fopenmp
@@ -10,8 +10,11 @@ pulsar.o: pulsar.cpp pulsar.hpp
 tx_pulsar: tx_pulsar.cpp pulsar.o
 	g++ $< -o $@ -O3 pulsar.o $(LIBS) -fopenmp
 
+single_tone: single_tone.cpp pulsar.o
+	g++ $< -o $@ -O3 pulsar.o $(LIBS) -fopenmp
+
 hackrf_daq: hackrf_daq.cpp
 	g++ $< -o $@ -O3 -lhackrf $(LIBS) -fopenmp
 
 clean:
-	rm -rf lib $(TARGETS)
+	rm -rf lib $(TARGETS) *.o
