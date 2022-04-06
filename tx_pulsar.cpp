@@ -79,6 +79,15 @@ void send_signal(
                     auto x=buffer[i]/max_value*(double)std::numeric_limits<int16_t>::max()/2.0;
                     (*data)[i]=complex<int16_t>(std::real(x), std::imag(x));
                 }
+                if (i==1){
+                    std::ofstream ofs("iq_dump.bin");
+                    std::vector<std::complex<int8_t>> dump_data;
+                    dump_data.reserve(signal_length);
+                    for(auto &x: *data){
+                        dump_data.push_back(std::complex<int8_t>(x.real()>>8, x.imag()>>8));
+                    }
+                    ofs.write((char*)dump_data.data(), signal_length*sizeof(std::complex<int8_t>));
+                }
             });
         }
     });
