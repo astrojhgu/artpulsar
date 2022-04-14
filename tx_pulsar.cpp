@@ -209,7 +209,7 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     
     if (vm.count("pms")){
         double dt=1/rate;
-        period_n=period_ms/dt;
+        period_n=period_ms/1e3/dt;
         std::cerr<<"Period in ms: "<<period_ms<<" => period_n="<< period_n<<std::endl;
     }else if (vm.count("pn")){
         std::cerr<<"Period in nsamples: "<<period_n<<std::endl;
