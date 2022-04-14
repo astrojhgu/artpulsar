@@ -8,7 +8,7 @@
 #include <thread>
 #include <vector>
 #include <fstream>
-
+#include "fft_channelizer.hpp"
 
 namespace po = boost::program_options;
 using namespace std;
@@ -18,6 +18,8 @@ double FREQ_CENTRE_MHz=150.0;
 size_t cnt=0;
 ofstream ofs;
 size_t nsamples=size_t(SAMP_RATE_MHz*1e6*60);
+channelizer* chptr=nullptr;
+
 
 
 int config_hackrf( hackrf_device * & dev, const int16_t & gain)
@@ -76,8 +78,15 @@ int config_hackrf( hackrf_device * & dev, const int16_t & gain)
     return(result);
 }
 
+
+
+
+
 int rx_callback(hackrf_transfer* transfer) {
-    ofs.write((char*)transfer->buffer, transfer->valid_length);
+    auto buf=chptr->spec((char*)transfer->buffer, transfer->buffer_length);
+    //std::cerr<<buf.size()<<std::endl;
+    ofs.write((char*)buf.data(), buf.size()*sizeof(float));
+    assert(ofs.good());
     cnt+=1;
     if (cnt*transfer->valid_length>2*nsamples){
         exit(0);
@@ -135,6 +144,7 @@ int rx(hackrf_device *dev)
 int main(int argc, char* argv[]){
     std::string ofname;
     int16_t gain=0;
+    size_t nch=0;
     po::options_description desc("Allowed options");
     double secs=10;
     desc.add_options()
@@ -144,10 +154,16 @@ int main(int argc, char* argv[]){
         ("secs", po::value<double>(&secs)->default_value(10), "daq secs of data")
         ("gain", po::value<int16_t>(&gain)->default_value(0), "gain")
         ("out", po::value<std::string>(&ofname)->default_value("/dev/stdout"), "outfile name")
+        ("nch", po::value<size_t>(&nch)->default_value(512), "nch")
         ;
+
+    
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
+    std::cerr<<nch<<std::endl;
+    
+    chptr=new channelizer(nch);
 
     nsamples=secs*SAMP_RATE_MHz*1e6;
 
@@ -158,7 +174,8 @@ int main(int argc, char* argv[]){
         return ~0;
     }
 
-    ofs.open(ofname.c_str());
+
+    ofs.open(ofname.c_str(), std::ios_base::app|std::ios_base::binary);
 
     std::cerr<<"freq= "<<FREQ_CENTRE_MHz<<std::endl;
     std::cerr<<"bw= "<<SAMP_RATE_MHz<<std::endl;
