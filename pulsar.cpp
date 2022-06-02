@@ -77,8 +77,11 @@ std::tuple<function<void(vector<complex<double>>&)>, size_t> get_pulsar(
     //size_t period_n=round(period_ms/dt_ms);
     
     size_t signal_length=period_n*nperiods;
-    fftw_plan pf=fftw_plan_dft_1d(signal_length, nullptr, nullptr, FFTW_FORWARD, FFTW_ESTIMATE);
-    fftw_plan pb=fftw_plan_dft_1d(signal_length, nullptr, nullptr, FFTW_BACKWARD, FFTW_ESTIMATE);
+    std::cerr<<signal_length<<std::endl;
+    std::vector<complex<double>> dummy_buffer(signal_length);
+    fftw_plan pf=fftw_plan_dft_1d(signal_length, (fftw_complex*)dummy_buffer.data(),  (fftw_complex*)dummy_buffer.data(), FFTW_FORWARD, FFTW_ESTIMATE);
+    fftw_plan pb=fftw_plan_dft_1d(signal_length,  (fftw_complex*)dummy_buffer.data(),  (fftw_complex*)dummy_buffer.data(), FFTW_BACKWARD, FFTW_ESTIMATE);
+
 
     double bw_Hz=(fmax_MHz-fmin_MHz)*1e6;
     double fc_Hz=(fmax_MHz+fmin_MHz)*1e6/2.0;
@@ -94,6 +97,8 @@ std::tuple<function<void(vector<complex<double>>&)>, size_t> get_pulsar(
         //phase_factor[i]=exp(complex<double>(0.0, 1.0)*dphi);
         phase_factor[i]=chirp(dm, fc_Hz/1e6, freq[i]*bw_Hz/1e6);
     }
+
+
     
     
 

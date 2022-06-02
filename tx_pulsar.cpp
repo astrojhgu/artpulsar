@@ -125,7 +125,7 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     
     double dm=0;
     double period_ms=50.0;
-    size_t period_n=period_n/(1/100e6);
+    size_t period_n=period_ms/(1/100e6);
 
 
     double rate, freq, gain, bw, lo_offset;
@@ -171,6 +171,7 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     }
 
     bool cohmod=vm.count("cohmod");
+    std::cerr<<(cohmod?"Using coh mode":"Not using coh mode")<<std::endl;
 
     // create a usrp device
     std::cout << std::endl;
@@ -185,7 +186,9 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
 
     // always select the subdevice first, the channel mapping affects the other settings
     if (vm.count("subdev"))
+      {
         usrp->set_tx_subdev_spec(subdev);
+      }
 
     std::cout << boost::format("Using Device: %s") % usrp->get_pp_string() << std::endl;
 
@@ -193,6 +196,8 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     if (not vm.count("rate")) {
         std::cerr << "Please specify the sample rate with --rate" << std::endl;
         return ~0;
+    }else{
+      std::cerr<<"Sampling rate (i.e., digital bw)="<<rate/1e6<<" MHz"<<std::endl;
     }
 
     
@@ -210,13 +215,15 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     if (vm.count("pms")){
         double dt=1/rate;
         period_n=period_ms/1e3/dt;
-        std::cerr<<"Period in ms: "<<period_ms<<" => period_n="<< period_n<<std::endl;
+        std::cerr<<"Period in ms: "<<period_ms<<" => period_n="<< period_n<<" points per period"<<std::endl;
     }else if (vm.count("pn")){
         std::cerr<<"Period in nsamples: "<<period_n<<std::endl;
     }else{
         std::cerr<<"Period should be provided"<<std::endl;
         return -1;
     }
+
+    std::cerr<<"Periods per shot="<<nperiod_per_shoot<<std::endl;
 
 
     // set the center frequency
@@ -258,8 +265,11 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
 
     // set the antenna
     if (vm.count("ant"))
+      {
         usrp->set_tx_antenna(ant);
+      }
 
+    
     // allow for some setup time:
     std::this_thread::sleep_for(std::chrono::seconds(1));
 

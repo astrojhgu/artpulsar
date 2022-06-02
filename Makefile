@@ -1,4 +1,4 @@
-TARGETS=tx_pulsar hackrf_daq hackrf_daq_fb single_tone
+TARGETS=tx_pulsar #hackrf_daq hackrf_daq_fb single_tone
 all: $(TARGETS)
 
 LIBS=-luhd -lboost_program_options -lboost_system -pthread -ldl -lcufftw -g
