@@ -14,7 +14,7 @@ if len(sys.argv)<4:
 
 raw_data=np.fromfile(sys.argv[1], dtype='int8')
 iq_data=raw_data[::2]+1j*raw_data[1::2]
-fft_len=sys.argv[4] if len(sys.argv)>4 else 1024
+fft_len=int(sys.argv[4]) if len(sys.argv)>4 else 1024
 fc=float(sys.argv[2])
 rate=float(sys.argv[3])
 
