@@ -1,8 +1,8 @@
 #include <vector>
 #include <complex>
 #include "pulsar.hpp"
-//#include <fftw3.h>
-#include <cufftw.h>
+#include <fftw3.h>
+//#include <cufftw.h>
 #include <cassert>
 #include <functional>
 #include <random>

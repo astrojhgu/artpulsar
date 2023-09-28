@@ -97,7 +97,7 @@ void send_signal(
     std::shared_ptr<std::vector<std::complex<int16_t>>> ptr=queue.fetch();
     while (not md.end_of_burst and not stop_signal_called) {
         if (!queue.filled_q.empty()){
-            std::cout<<"O";
+            std::cout<<"F";
             ptr=queue.fetch();
         }else{
             std::cout<<".";
