@@ -128,7 +128,7 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     size_t period_n=period_n/(1/100e6);
 
 
-    double rate, freq, gain, bw, lo_offset;
+    double rate, freq, gain, bw, lo_offset, freq_calc; 
 
     size_t nperiod_per_shoot=10;
     size_t nch=32768;
@@ -147,7 +147,8 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
         ("npp", po::value<size_t>(&nperiod_per_shoot)->default_value(10), "nperiod per shoot")
         ("nch", po::value<size_t>(&nch)->default_value(32768), "num of ch")
         ("rate", po::value<double>(&rate), "rate of outgoing samples")
-        ("freq", po::value<double>(&freq), "RF center frequency in Hz")
+        ("freq", po::value<double>(&freq), "RF central frequency in Hz")
+        ("freq-calc", po::value<double>(&freq_calc), "central frequency used to calc dispersion in Hz")
         ("lo-offset", po::value<double>(&lo_offset)->default_value(0.0),
             "Offset for frontend LO in Hz (optional)")
         ("gain", po::value<double>(&gain), "gain for the RF chain")
@@ -168,6 +169,14 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     if (vm.count("help")) {
         std::cout << boost::format("transmitting pulsar signal %s") % desc << std::endl;
         return ~0;
+    }
+
+    if (vm.count("freq-calc") == 0)
+    {
+        freq_calc=freq;
+        std::cout<<"Note: using tx freq to calculate the dispersion"<<std::endl;
+    }else{
+        std::cout<<"Note: using a separate frequency<<"<< (freq_calc/1e6) <<" MHz, to calculate dispersion"<<std::endl;
     }
 
     bool cohmod=vm.count("cohmod");
@@ -308,8 +317,8 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
 
     // send from file
     
-    double fmax=freq+rate/2;
-    double fmin=freq-rate/2;
+    double fmax=freq_calc+rate/2;
+    double fmin=freq_calc-rate/2;
     double df=rate/nch;
     size_t ch_max=fmax/df;
     //size_t ch_min=fmin/df;
