@@ -1,8 +1,13 @@
 #include <vector>
 #include <complex>
 #include "pulsar.hpp"
+
+#ifdef CPU
 #include <fftw3.h>
-//#include <cufftw.h>
+#else
+#include <cufftw.h>
+#endif
+
 #include <cassert>
 #include <functional>
 #include <random>

@@ -4,7 +4,7 @@ all: $(TARGETS)
 LIBS=-luhd -lboost_program_options -lboost_system -pthread -ldl -lfftw3 -g
 
 pulsar.o: pulsar.cpp pulsar.hpp
-	g++ -c -o $@ $< -O3 -fopenmp
+	g++ -c -o $@ $< -O3 -fopenmp -DCPU
 
 
 tx_pulsar: tx_pulsar.cpp pulsar.o
